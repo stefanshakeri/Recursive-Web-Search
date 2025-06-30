@@ -96,8 +96,11 @@ def query_papers(doi: str, max_depth: int = 2, depth: int = 0, visited: set = No
     next_dois = get_references(doi)
     print(f"Found {len(next_dois)} references for DOI: {doi}")
     for next in next_dois:
-        metadata = get_metadata(next)
+        # skip if the DOI has already been visited
+        if next in visited:
+            continue
         
+        metadata = get_metadata(next)
         if is_relevant(metadata):
             results.append(metadata)
             query_papers(next, max_depth, depth + 1, visited, results)
