@@ -70,7 +70,7 @@ def is_relevant(metadata: dict) -> bool:
     text = (metadata["title"] + " " + metadata["abstract"]).lower()
     return any(key.lower() in text for key in KEYWORDS)
 
-def query_papers(doi: str, max_depth: int = 2, depth: int = 0, visited: set = None, results: list = None) -> list:
+def query_papers(doi: str, max_depth: int = 2, depth: int = 0, visited: set = None, results: list = None, seen_results: set = None) -> list:
     """
     Recursively query papers based on their citations and references.
     :param doi: DOI of the paper to query
@@ -84,6 +84,7 @@ def query_papers(doi: str, max_depth: int = 2, depth: int = 0, visited: set = No
     if visited is None:
         visited = set()
         results = []
+        seen_results = set()
 
     # stop criteria
     if depth > max_depth or doi in visited:
@@ -101,8 +102,9 @@ def query_papers(doi: str, max_depth: int = 2, depth: int = 0, visited: set = No
             continue
         
         metadata = get_metadata(next)
-        if is_relevant(metadata):
+        if is_relevant(metadata) and metadata["doi"] not in seen_results:
             results.append(metadata)
-            query_papers(next, max_depth, depth + 1, visited, results)
-    
+            seen_results.add(metadata["doi"])
+            query_papers(next, max_depth, depth + 1, visited, results, seen_results)
+
     return results
