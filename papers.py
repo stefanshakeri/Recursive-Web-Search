@@ -24,8 +24,8 @@ def main():
         for paper in found:
             doi = paper["doi"]
             title = paper["title"].replace("\n", " ")
-            f.write(f"{doi}\t{title}\n")
-            
+            f.write(f"https://doi.org/{doi}\t{title}\n")
+
 if __name__ == "__main__":
     main()
 
