@@ -1,4 +1,5 @@
 import os
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 # Import the query_papers function from paper_query module
@@ -7,6 +8,15 @@ from paper_query import query_papers
 # Load environment variables
 load_dotenv()
 START_DOI = os.getenv("START_DOI")
+
+def strip_html(text: str) -> str:
+    """
+    Strip HTML tags from a given text.
+    :param text: Text containing HTML tags
+    :return: Text without HTML tags
+    """
+    return BeautifulSoup(text, "html.parser").get_text()
+
 
 def main():
     """
@@ -23,7 +33,7 @@ def main():
         # write one paper per line, tab-separated
         for paper in found:
             doi = paper["doi"]
-            title = paper["title"].replace("\n", " ")
+            title = strip_html(paper["title"].replace("\n", " "))
             f.write(f"https://doi.org/{doi}\t{title}\n")
 
 if __name__ == "__main__":
