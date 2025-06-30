@@ -13,8 +13,8 @@ def main():
     Main function to initiate the paper querying process.
     """
     print(f"Starting query with DOI: {START_DOI}")
-    found = query_papers(START_DOI)
-    print(f"Found {len(found)} relevant papers:")
+    found = query_papers(START_DOI, max_depth = 1)
+    print(f"Found {len(found)} relevant papers")
 
     # output the found papers into documents.txt
     with open("documents.txt", "w") as f:
