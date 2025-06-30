@@ -18,4 +18,4 @@ Run
 ```
 python papers.py
 ```
-and check ```documents.txt``` for your DOIs and titles. 
+and check ```documents.tsv``` for your DOIs and titles. 

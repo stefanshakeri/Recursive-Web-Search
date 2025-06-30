@@ -16,11 +16,15 @@ def main():
     found = query_papers(START_DOI, max_depth = 1)
     print(f"Found {len(found)} relevant papers")
 
-    # output the found papers into documents.txt
-    with open("documents.txt", "w") as f:
+    # output the found papers into documents.tsv
+    with open("documents.tsv", "w", encoding="utf-8") as f:
+        # write the header
+        f.write("DOI\tTitle\n")
+        # write one paper per line, tab-separated
         for paper in found:
-            f.write(f"DOI: {paper['doi']}\n")
-            f.write(f"Title: {paper['title']}\n")
+            doi = paper["doi"]
+            title = paper["title"].replace("\n", " ")
+            f.write(f"{doi}\t{title}\n")
             
 if __name__ == "__main__":
     main()
