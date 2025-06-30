@@ -47,9 +47,22 @@ def get_metadata(doi: str) -> dict:
     :param doi: DOI of the paper to query
     :return: metadata of the paper as a dictionary
     """
-    r = requests.get(f"{CROSSREF}/{doi}", params={"mailto": MAILTO})
-    r.raise_for_status()
-
+    # make a request to the CrossRef API to get the metadata for the given DOI
+    try:
+        r = requests.get(f"{CROSSREF}/{doi}", params={"mailto": MAILTO})
+        r.raise_for_status()
+    # handle 404 errors specifically
+    except requests.exceptions.HTTPError as e:
+        if r.status_code == 404:
+            print(f"Warning: DOI {doi} not found (404). Skipping.")
+        else:
+            print(f"Warning: HTTP error for DOI {doi}: {e}. Skipping.")
+        return None
+    # handle other request exceptions
+    except requests.exceptions.RequestException as e:
+        print(f"Warning: network error for DOI {doi}: {e}. Skipping.")
+        return None
+    
     # extract relevant metadata from the response
     message = r.json()["message"]
     title = " ".join(message.get("title", []))
@@ -102,6 +115,10 @@ def query_papers(doi: str, max_depth: int = 2, depth: int = 0, visited: set = No
             continue
         
         metadata = get_metadata(next)
+        # skip if metadata is None (e.g., DOI not found)
+        if metadata is None:
+            continue
+        
         if is_relevant(metadata) and metadata["doi"] not in seen_results:
             results.append(metadata)
             seen_results.add(metadata["doi"])
