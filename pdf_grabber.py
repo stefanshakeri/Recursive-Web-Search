@@ -43,10 +43,14 @@ def download_pdf(doi: str, pdf_url: str):
     output_path = os.path.join(OUTPUT_DIR, f"{safe_name}.pdf")
 
     with requests.get(pdf_url, stream=True, timeout=20) as r:
-        r.raise_for_status()
-        with open(output_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+        try:
+            r.raise_for_status()
+            with open(output_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        except requests.exceptions.HTTPError as e:
+            print(f"Error downloading {doi}: {e}")
+            return
     
     print(f"Downloaded {doi}")
 
@@ -54,15 +58,21 @@ def main():
     """
     Main function to orchestrate the PDF downloading process.
     """
+    # read DOIs from the input file
     with open(INPUT_FILE) as f:
         dois = [line.strip() for line in f if line.strip()]
 
+    # iterate over each DOI and fetch the PDF URL
+    pdf_counter = 0
     for doi in dois:
         pdf_url = get_pdf_url(doi)
         if pdf_url:
             download_pdf(doi, pdf_url)
+            pdf_counter += 1
         else:
             print(f"No PDF found for DOI: {doi}")
+
+    print(f"Downloaded {pdf_counter} PDFs.")
 
 if __name__ == "__main__":
     main()
