@@ -54,10 +54,21 @@ def download_pdf(doi: str, pdf_url: str):
     
     print(f"Downloaded {doi}")
 
+def clear_pdfs():
+    """
+    Clear all PDF files from the output directory.
+    """
+    for filename in os.listdir(OUTPUT_DIR):
+        file_path = os.path.join(OUTPUT_DIR, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
 def main():
     """
     Main function to orchestrate the PDF downloading process.
     """
+    # clear the output directory
+    clear_pdfs()
     # read DOIs from the input file
     with open(INPUT_FILE) as f:
         dois = [line.strip() for line in f if line.strip()]
