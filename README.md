@@ -1,5 +1,5 @@
 # Recursive-Web-Search
-Search through research papers and informational resources to recursively compile a list of relevant resources. 
+Search through research papers and informational resources to recursively compile a list of relevant resources. Also generate PDFs from their DOIs. 
 
 ### Step 1. environment variables
 Create a ```.env``` file with the necessary envrionment variables like so:
@@ -19,3 +19,12 @@ Run
 python papers.py
 ```
 and check ```documents.tsv``` for your DOIs and titles. 
+
+## PDF Generation
+
+### Step 1. run the file
+Run
+```
+python pdf_grabber.py
+```
+and check ```data/pdfs``` for your pdfs. 

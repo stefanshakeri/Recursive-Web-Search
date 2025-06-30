@@ -27,14 +27,18 @@ def main():
     print(f"Found {len(found)} relevant papers")
 
     # output the found papers into documents.tsv
-    with open("documents.tsv", "w", encoding="utf-8") as f:
+    with open("data/documents.tsv", "w", encoding="utf-8") as f:
         # write the header
         f.write("DOI\tTitle\n")
         # write one paper per line, tab-separated
         for paper in found:
             doi = paper["doi"]
             title = strip_html(paper["title"].replace("\n", " "))
+            # add the DOI and title to the file
             f.write(f"https://doi.org/{doi}\t{title}\n")
+            # add the doi to dois.txt
+            with open("data/dois.txt", "a", encoding="utf-8") as doi_file:
+                doi_file.write(f"{doi}\n")
 
 if __name__ == "__main__":
     main()
