@@ -10,6 +10,8 @@ UNPAYWALL_EMAIL = os.getenv("MAILTO")
 OUTPUT_DIR = "data/pdfs"
 INPUT_FILE = "data/dois.txt"
 
+PDF_COUNTER = 0
+
 # prepare output folder
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -48,6 +50,8 @@ def download_pdf(doi: str, pdf_url: str):
             with open(output_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
+            global PDF_COUNTER
+            PDF_COUNTER += 1
         except requests.exceptions.HTTPError as e:
             print(f"Error downloading {doi}: {e}")
             return
@@ -74,16 +78,14 @@ def main():
         dois = [line.strip() for line in f if line.strip()]
 
     # iterate over each DOI and fetch the PDF URL
-    pdf_counter = 0
     for doi in dois:
         pdf_url = get_pdf_url(doi)
         if pdf_url:
             download_pdf(doi, pdf_url)
-            pdf_counter += 1
         else:
             print(f"No PDF found for DOI: {doi}")
 
-    print(f"Downloaded {pdf_counter} PDFs.")
+    print(f"Downloaded {PDF_COUNTER} PDFs.")
 
 if __name__ == "__main__":
     main()
