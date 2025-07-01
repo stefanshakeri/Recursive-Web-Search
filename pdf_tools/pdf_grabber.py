@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from dotenv import load_dotenv
-from urllib.parse import urljoin, quote_plus
+from urllib.parse import urljoin, quote_plus, urlparse, parse_qs
 
 from bs4 import BeautifulSoup
 
@@ -18,6 +18,27 @@ PDF_COUNTER = 0
 # prepare output folder
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+def is_pdf_link(href: str) -> bool:
+    """
+    Check if the given href points to .pdf or pdfft endpoint carrying a PDF
+    
+    :param href: URL or path to check
+    :return: True if it points to a PDF, False otherwise
+    """
+    # parse the URL and check the path
+    parsed = urlparse(href)
+    path = parsed.path.lower()
+    
+    if path.endswith(".pdf") or "pdfft" in path:
+        return True
+    
+    # check for query-string values as well
+    for vals in parse_qs(parsed.query).values():
+        if any(v.lower().endswith(".pdf") for v in vals):
+            return True
+    
+    return False
+
 def find_pdf_link(soup: BeautifulSoup, base_url: str) -> str:
     """
     Find a direct PDF link in the given BeautifulSoup object.
@@ -29,7 +50,7 @@ def find_pdf_link(soup: BeautifulSoup, base_url: str) -> str:
     # direct .pdf in <a>
     for a in soup.find_all("a", href=True):
         href = a["href"]
-        if href.lower().endswith(".pdf"):
+        if is_pdf_link(href):
             return urljoin(base_url, href)
     
     # <iframe> or <embed> with PDF
@@ -59,6 +80,10 @@ def find_intermediate_pdf_page(soup: BeautifulSoup) -> str:
     for a in candidates:
         return a["href"]
     
+    view_link = soup.select_one("a[aria-label^='View PDF'], a.link-button[href]")
+    if view_link and view_link.get("href"):
+        return view_link["href"]
+    
     return None
 
 def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
@@ -69,7 +94,7 @@ def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
     """
     session = session or requests.Session()
     session.headers.update({
-        "User-Agent": "Mozilla/5.0 (compatible; PDFScraper/1.0; +https://github.com/stefanshakeri/Recursive-Web-Search)"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
     })
 
     doi_url = f"https://doi.org/{quote_plus(doi)}"
@@ -92,6 +117,7 @@ def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
         
         # find intermediate links to "download PDF" or "view PDF" type pages
         intermediate_links = find_intermediate_pdf_page(soup1)
+        
         if intermediate_links:
             inter_url = urljoin(doi_url, intermediate_links)
             r2 = session.get(inter_url, timeout=10)
