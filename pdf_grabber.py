@@ -1,7 +1,8 @@
 import os
+import re
 import requests
 from dotenv import load_dotenv
-from urllib.parse import quote_plus
+from urllib.parse import urljoin, quote_plus
 
 # load environment variables
 load_dotenv()
@@ -14,6 +15,29 @@ PDF_COUNTER = 0
 
 # prepare output folder
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+def web_scrape_pdfs(doi: str) -> str:
+    """
+    Web scrape the PDF from the given DOI. 
+    :param doi: the DOI of the paper
+    :return: URL of the PDF if available, otherwise None
+    """
+    doi_url = f"https://doi.org/{quote_plus(doi)}"
+    try:
+        # make a request to the DOI URL
+        r = requests.get(doi_url, timeout=10)
+        r.raise_for_status()
+
+        # check if the response contains a PDF link
+        pdf_link = re.search(r'href="([^"]+\.pdf)"', r.text, re.IGNORECASE)
+        if pdf_link:
+            pdf_url = urljoin(doi_url, pdf_link.group(1))
+            return pdf_url
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching PDF for DOI {doi}: {e}")
+    return None
+
 
 def get_pdf_url(doi: str) -> str:
     """
@@ -43,18 +67,27 @@ def download_pdf(doi: str, pdf_url: str):
     # create a safe filename by replacing slashes in the DOI
     safe_name = doi.replace("/", "_")
     output_path = os.path.join(OUTPUT_DIR, f"{safe_name}.pdf")
-
-    with requests.get(pdf_url, stream=True, timeout=20) as r:
-        try:
+    
+    try:
+        with requests.get(pdf_url, stream=True, timeout=20) as r:
             r.raise_for_status()
             with open(output_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
             global PDF_COUNTER
             PDF_COUNTER += 1
-        except requests.exceptions.HTTPError as e:
-            print(f"Error downloading {doi}: {e}")
-            return
+    except requests.exceptions.HTTPError as e:
+        print(f"Error downloading {doi}: {e}")
+        return
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error while downloading {doi}: {e}")
+        return
+    except requests.exceptions.Timeout as e:
+        print(f"Max retries exceeded while downloading {doi}: {e}")
+        return
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred while downloading {doi}: {e}")
+        return
     
     print(f"Downloaded {doi}")
 
@@ -83,9 +116,15 @@ def main():
         if pdf_url:
             download_pdf(doi, pdf_url)
         else:
-            print(f"No PDF found for DOI: {doi}")
+            # if Unpaywall API fails, try web scraping
+            pdf_url = web_scrape_pdfs(doi)
+            if pdf_url:
+                download_pdf(doi, pdf_url)
+            else:
+                print(f"No PDF found for DOI: {doi}")
 
     print(f"Downloaded {PDF_COUNTER} PDFs.")
+
 
 if __name__ == "__main__":
     main()
