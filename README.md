@@ -22,9 +22,16 @@ and check ```documents.tsv``` for your DOIs and titles.
 
 ## PDF Generation
 
+### Optional. convert DOI links to DOIs
+Run 
+```
+python pdf_tools/links_to_dois.py
+```
+to convert a list of doi links in ```doi_links.txt``` into a list of only dois stored in ```dois.txt```
+
 ### Step 1. run the file
 Run
 ```
-python pdf_grabber.py
+python pdf_tools/pdf_grabber.py
 ```
 and check ```data/pdfs``` for your pdfs. 
