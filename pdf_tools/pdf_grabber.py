@@ -103,6 +103,16 @@ def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
         # make a request to the DOI URL
         r1 = session.get(doi_url, timeout=10)
         r1.raise_for_status()
+        html = r1.text
+        
+        # check if PDF URL is embedded under "pdfUrl"
+        match = re.search(r'"pdfUrl"\s*:\s*"([^"]+)"', html)
+        if match:
+            candidate_url = urljoin(doi_url, match.group(1))
+            if is_pdf_link(candidate_url) or ".pdf" in candidate_url.lower():
+                return candidate_url
+            pdf_url = html.unescape(match.group(1))
+            return urljoin(doi_url, pdf_url)
 
         # if the response is a PDF, return the URL
         if "application/pdf" in r1.headers.get("Content-Type", ""):
