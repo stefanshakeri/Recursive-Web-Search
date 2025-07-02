@@ -461,11 +461,11 @@ def download_pdf(doi: str, pdf_url: str):
 
 def clear_pdfs():
     """
-    Clear all PDF files from the output directory.
+    Clear all PDF files from the output directory. Does not delete .gitkeep
     """
     for filename in os.listdir(OUTPUT_DIR):
         file_path = os.path.join(OUTPUT_DIR, filename)
-        if os.path.isfile(file_path):
+        if os.path.isfile(file_path) and filename != ".gitkeep":
             os.remove(file_path)
 
 def main():
