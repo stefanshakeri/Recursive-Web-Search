@@ -12,7 +12,7 @@ load_dotenv()
 CROSSREF = os.getenv("CROSSREF")
 MAILTO = os.getenv("MAILTO")
 
-def get_date(doi: str) -> str:
+def get_date(index: int, total: int, doi: str) -> str:
     """
     Get the publication date for a given DOI.
 
@@ -39,7 +39,7 @@ def get_date(doi: str) -> str:
     date = message["issued"]["date-parts"][0]
     # format the date as YYYY
     publication_date = str(date[0])
-    print(f"Found publication date for DOI {doi}: {publication_date}")
+    print(f"[{index}/{total}]Found publication date for DOI {doi}: {publication_date}")
     return publication_date
 
 def main():
@@ -54,8 +54,8 @@ def main():
         dois = [line.strip() for line in f if line.strip()]
 
     # get the publication date for each DOI
-    for doi in dois:
-        dates.append(get_date(doi))
+    for i, doi in enumerate(dois):
+        dates.append(get_date(i, len(dois), doi))
     
     # write the dates into data/dates.txt
     with open("data/dates.txt", "w") as f:
