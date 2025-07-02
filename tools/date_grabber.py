@@ -60,6 +60,8 @@ def main():
     # write the dates into data/dates.txt
     with open("data/dates.txt", "w") as f:
         f.writelines("\n".join(dates))
+    
+    print(f"Saved {len(dates)} publication dates to data/dates.txt")
 
 if __name__ == "__main__":
     main()
