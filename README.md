@@ -18,20 +18,36 @@ Run
 ```
 python papers.py
 ```
-and check ```documents.tsv``` for your DOIs and titles. 
+and check ```data/documents.tsv``` for your DOIs and titles. 
 
 ## PDF Generation
 
 ### Optional. convert DOI links to DOIs
 Run 
 ```
-python pdf_tools/links_to_dois.py
+python tools/links_to_dois.py
 ```
-to convert a list of doi links in ```doi_links.txt``` into a list of only dois stored in ```dois.txt```
+to convert a list of doi links in ```data/doi_links.txt``` into a list of only dois stored in ```data/dois.txt```
 
 ### Step 1. run the file
 Run
 ```
-python pdf_tools/pdf_grabber.py
+python tools/pdf_grabber.py
 ```
 and check ```data/pdfs``` for your pdfs. 
+
+## Get Dates
+
+### Step 1. convert DOI links to DOIs
+Run 
+```
+python tools/links_to_dois.py
+```
+to convert a list of doi links in ```data/doi_links.txt``` into a list of only dois stored in ```data/dois.txt```
+
+### Step 2. get dates
+Run
+```
+python tools/date_grabber.py
+```
+to generate a list of dates based on the DOIs, stored in ```data/dates.txt```. 
