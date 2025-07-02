@@ -37,10 +37,10 @@ def get_date(doi: str) -> str:
     # parse the response JSON
     message = r.json()["message"]
     date = message["issued"]["date-parts"][0]
-    # format the date as YYYY-MM-DD
-    publication_date = "-".join(map(str, date))
+    # format the date as YYYY
+    publication_date = str(date[0])
     print(f"Found publication date for DOI {doi}: {publication_date}")
-    return {"date": publication_date}
+    return publication_date
 
 def main():
     """
