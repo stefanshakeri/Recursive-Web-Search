@@ -39,7 +39,7 @@ def get_date(doi: str) -> str:
     date = message["issued"]["date-parts"][0]
     # format the date as YYYY-MM-DD
     publication_date = "-".join(map(str, date))
-
+    print(f"Found publication date for DOI {doi}: {publication_date}")
     return {"date": publication_date}
 
 def main():
