@@ -18,6 +18,41 @@ PDF_COUNTER = 0
 # prepare output folder
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+def verify_pdf_url(url: str, session: requests.Session = None) -> bool:
+    """
+    Verify that a URL actually points to a PDF by checking headers.
+    :param url: URL to verify
+    :param session: requests session to use
+    :return: True if URL points to a PDF, False otherwise
+    """
+    session = session or requests.Session()
+    try:
+        # Make a HEAD request to check content type without downloading
+        response = session.head(url, timeout=10, allow_redirects=True)
+        content_type = response.headers.get("Content-Type", "").lower()
+        
+        # Check if content type indicates PDF
+        if "application/pdf" in content_type:
+            return True
+        
+        # Some servers don't set proper content type, so check content-disposition
+        content_disposition = response.headers.get("Content-Disposition", "").lower()
+        if ".pdf" in content_disposition:
+            return True
+        
+        # If HEAD doesn't work, try a small GET request
+        if response.status_code != 200:
+            response = session.get(url, timeout=10, stream=True, headers={"Range": "bytes=0-1023"})
+            
+        # Check if URL path suggests it's a PDF
+        if url.lower().endswith('.pdf'):
+            return True
+            
+    except requests.exceptions.RequestException:
+        pass
+    
+    return False
+
 def is_pdf_link(href: str) -> bool:
     """
     Check if the given href points to .pdf or pdfft endpoint carrying a PDF
@@ -212,7 +247,11 @@ def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
         # Method 3: Look for direct PDF links in the HTML
         pdf_url = find_pdf_link(soup1, r1.url)
         if pdf_url:
-            return pdf_url
+            # Verify the PDF URL before returning it
+            if verify_pdf_url(pdf_url, session):
+                return pdf_url
+            else:
+                print(f"  PDF URL verification failed for {pdf_url}")
         
         # Method 4: Try multiple intermediate page strategies
         intermediate_links = find_intermediate_pdf_page(soup1)
@@ -229,7 +268,7 @@ def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
 
                 soup2 = BeautifulSoup(r2.text, "html.parser")
                 pdf_url = find_pdf_link(soup2, r2.url)
-                if pdf_url:
+                if pdf_url and verify_pdf_url(pdf_url, session):
                     return pdf_url
             except requests.exceptions.RequestException:
                 pass  # Continue to next method
@@ -248,8 +287,7 @@ def web_scrape_pdfs(doi: str, session: requests.Session = None) -> str:
         for path in common_pdf_paths:
             try:
                 test_url = base_domain + path
-                r_test = session.head(test_url, timeout=10)
-                if r_test.status_code == 200 and "application/pdf" in r_test.headers.get("Content-Type", ""):
+                if verify_pdf_url(test_url, session):
                     return test_url
             except requests.exceptions.RequestException:
                 continue
@@ -270,19 +308,12 @@ def try_alternative_sources(doi: str, session: requests.Session) -> str:
     :param session: requests session to use
     :return: URL of the PDF if found, otherwise None
     """
-    # Try Sci-Hub (use with caution and respect copyright)
-    # Note: This is for educational purposes only
-    
     # Try arXiv if it's an arXiv paper
     if "arxiv" in doi.lower():
         arxiv_id = doi.split("/")[-1] if "/" in doi else doi
         arxiv_pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
-        try:
-            r = session.head(arxiv_pdf_url, timeout=10)
-            if r.status_code == 200:
-                return arxiv_pdf_url
-        except requests.exceptions.RequestException:
-            pass
+        if verify_pdf_url(arxiv_pdf_url, session):
+            return arxiv_pdf_url
     
     # Try bioRxiv/medRxiv patterns
     for preprint_server in ["biorxiv", "medrxiv"]:
@@ -293,8 +324,7 @@ def try_alternative_sources(doi: str, session: requests.Session) -> str:
                 if len(parts) >= 2:
                     paper_id = parts[-1]
                     pdf_url = f"https://www.{preprint_server}.org/content/10.1101/{paper_id}v1.full.pdf"
-                    r = session.head(pdf_url, timeout=10)
-                    if r.status_code == 200:
+                    if verify_pdf_url(pdf_url, session):
                         return pdf_url
             except requests.exceptions.RequestException:
                 pass
@@ -326,16 +356,44 @@ def get_pdf_url(doi: str) -> str:
 
 def is_valid_pdf(file_path: str) -> bool:
     """
-    Check if the downloaded file is a valid PDF by checking its header.
+    Check if the downloaded file is a valid PDF by checking its header and basic structure.
     :param file_path: Path to the file to check
     :return: True if it's a valid PDF, False otherwise
     """
     try:
         with open(file_path, "rb") as f:
-            header = f.read(4)
-            return header == b'%PDF'
-    except Exception:
+            # Check PDF header
+            header = f.read(8)
+            if not header.startswith(b'%PDF-'):
+                return False
+            
+            # Check file size - PDFs should be at least a few hundred bytes
+            f.seek(0, 2)  # Seek to end
+            file_size = f.tell()
+            if file_size < 100:  # Too small to be a valid PDF
+                return False
+            
+            # Check for PDF trailer (basic structure validation)
+            f.seek(max(0, file_size - 1024))  # Read last 1KB
+            trailer_content = f.read()
+            if b'%%EOF' not in trailer_content and b'trailer' not in trailer_content:
+                return False
+            
+            return True
+    except Exception as e:
+        print(f"Error validating PDF {file_path}: {e}")
         return False
+
+def is_html_content(content_bytes: bytes) -> bool:
+    """
+    Check if content is HTML (common when servers return error pages instead of PDFs).
+    :param content_bytes: First few bytes of content
+    :return: True if content appears to be HTML
+    """
+    # Check for common HTML indicators
+    html_indicators = [b'<!DOCTYPE', b'<html', b'<HTML', b'<head', b'<HEAD', b'<body', b'<BODY']
+    content_lower = content_bytes.lower()
+    return any(indicator in content_lower for indicator in html_indicators)
 
 def download_pdf(doi: str, pdf_url: str):
     """
@@ -350,19 +408,44 @@ def download_pdf(doi: str, pdf_url: str):
     try:
         with requests.get(pdf_url, stream=True, timeout=20) as r:
             r.raise_for_status()
+            
+            # Check if the response is actually a PDF
+            content_type = r.headers.get("Content-Type", "").lower()
+            if "application/pdf" not in content_type and "pdf" not in content_type:
+                print(f"Warning: Content-Type is '{content_type}' for {doi}, may not be a PDF")
+            
+            # Read first chunk to check if it's HTML instead of PDF
+            first_chunk = None
+            content_written = 0
+            
             with open(output_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
+                    if first_chunk is None:
+                        first_chunk = chunk
+                        # Check if the response is HTML instead of PDF
+                        if is_html_content(chunk):
+                            print(f"Error: Received HTML content instead of PDF for {doi}")
+                            return
+                    
                     f.write(chunk)
+                    content_written += len(chunk)
+            
+            # Check if we got a reasonable amount of content
+            if content_written < 1000:  # Less than 1KB is suspicious for a PDF
+                os.remove(output_path)
+                print(f"Error: Downloaded file for {doi} is too small ({content_written} bytes), likely not a valid PDF")
+                return
             
             # Validate that the downloaded file is actually a PDF
             if is_valid_pdf(output_path):
                 global PDF_COUNTER
                 PDF_COUNTER += 1
-                print(f"Downloaded {doi}")
+                print(f"Downloaded {doi} ({content_written} bytes)")
             else:
                 os.remove(output_path)  # Remove invalid file
                 print(f"Downloaded file for {doi} is not a valid PDF, removed")
                 return
+            
     except requests.exceptions.HTTPError as e:
         print(f"Error downloading {doi}: {e}")
         return
@@ -401,15 +484,23 @@ def main():
     for i, doi in enumerate(dois, 1):
         print(f"\n[{i}/{len(dois)}] Processing DOI: {doi}")
         
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+        })
+        
         # Method 1: Try Unpaywall API first
         pdf_url = get_pdf_url(doi)
         if pdf_url:
             print(f"  Found PDF via Unpaywall: {pdf_url}")
-            download_pdf(doi, pdf_url)
-            continue
+            # Verify the URL before downloading
+            if verify_pdf_url(pdf_url, session):
+                download_pdf(doi, pdf_url)
+                continue
+            else:
+                print(f"  Unpaywall URL verification failed, trying other methods...")
         
         # Method 2: Try web scraping
-        session = requests.Session()
         pdf_url = web_scrape_pdfs(doi, session=session)
         if pdf_url:
             print(f"  Found PDF via web scraping: {pdf_url}")
@@ -425,7 +516,7 @@ def main():
         
         print(f"  No PDF found for DOI: {doi}")
 
-    print(f"\nCompleted! Downloaded {PDF_COUNTER} PDFs out of {len(dois)} DOIs.")
+    print(f"\nDownloaded {PDF_COUNTER} PDFs out of {len(dois)} DOIs.")
 
 
 if __name__ == "__main__":
