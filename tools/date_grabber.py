@@ -39,7 +39,7 @@ def get_date(index: int, total: int, doi: str) -> str:
     date = message["issued"]["date-parts"][0]
     # format the date as YYYY
     publication_date = str(date[0])
-    print(f"[{index}/{total}]Found publication date for DOI {doi}: {publication_date}")
+    print(f"[{index}/{total}] Found publication date for DOI {doi}: {publication_date}")
     return publication_date
 
 def main():
@@ -55,7 +55,7 @@ def main():
 
     # get the publication date for each DOI
     for i, doi in enumerate(dois):
-        dates.append(get_date(i, len(dois), doi))
+        dates.append(get_date(i + 1, len(dois), doi))
     
     # write the dates into data/dates.txt
     with open("data/dates.txt", "w") as f:
