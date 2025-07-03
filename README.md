@@ -51,3 +51,47 @@ Run
 python tools/date_grabber.py
 ```
 to generate a list of dates based on the DOIs, stored in ```data/dates.txt```. 
+
+## Get Publications
+
+### Step 1. convert DOI links to DOIs
+Run 
+```
+python tools/links_to_dois.py
+```
+to convert a list of doi links in ```data/doi_links.txt``` into a list of only dois stored in ```data/dois.txt```
+
+### Step 2. get publications
+Run
+```
+python tools/pub_grabber.py
+```
+to generate a list of publications based on the DOIs, stored in ```data/pubs.txt```. 
+
+## Get Authors
+
+### Step 1. convert DOI links to DOIs
+Run 
+```
+python tools/links_to_dois.py
+```
+to convert a list of doi links in ```data/doi_links.txt``` into a list of only dois stored in ```data/dois.txt```
+
+### Step 2. get authors
+Run
+```
+python tools/author_grabber.py
+```
+to generate a list of authors based on the DOIs, stored in ```data/authors.txt```. 
+
+## Get Keywords
+
+### Step 1. insert DOI link
+Ensure that you have your list of DOI links in ```data/doi_links.txt```. 
+
+### Step 2. get publications
+Run
+```
+python tools/keyword_grabber.py
+```
+to generate a list of publications based on the DOIs, stored in ```data/keywords.txt```. 
