@@ -54,7 +54,7 @@ def main():
     Main function to read DOIs from dois.txt, fetch their authors
     """
     dois = []
-    authors = []
+    authors_list = []
 
     # read the DOIs from data/dois.txt
     with open("data/dois.txt", "r") as f:
@@ -64,9 +64,9 @@ def main():
     for i, doi in enumerate(dois):
         authors = get_authors(i + 1, len(dois), doi)
         if authors is not None:  # Only append if we got a valid result
-            authors.append(authors)
+            authors_list.append(authors)
         else:
-            authors.append("Unknown")  # Use "Unknown" for failed requests
+            authors_list.append("Unknown")  # Use "Unknown" for failed requests
 
     # write the authors into data/authors.txt
     with open("data/authors.txt", "w") as f:
