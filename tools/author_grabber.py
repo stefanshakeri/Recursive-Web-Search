@@ -70,9 +70,9 @@ def main():
 
     # write the authors into data/authors.txt
     with open("data/authors.txt", "w") as f:
-        f.writelines("\n".join(authors))
+        f.writelines("\n".join(authors_list))
 
-    print(f"Saved {len(authors)} authors to data/authors.txt")
+    print(f"Saved {len(authors_list)} authors to data/authors.txt")
 
 if __name__ == "__main__":
     main()
