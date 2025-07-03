@@ -39,9 +39,10 @@ def get_authors(index: int, total: int, doi: str) -> str:
         message = r.json()["message"]
         # get the authors if message["author"] exists and has elements
         if "author" in message and message["author"]:
-            authors = [f"{a['given']} {a['family']}" for a in message["author"]]
+            authors_list = [f"{a['given']} {a['family']}" for a in message["author"]]
+            authors = ", ".join(authors_list)
         else:
-            authors = ["Unknown"]
+            authors = "Unknown"
         print(f"[{index}/{total}] Found authors for DOI {doi}: {authors}")
         return authors
     except (KeyError, IndexError, ValueError) as e:
