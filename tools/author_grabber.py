@@ -39,7 +39,23 @@ def get_authors(index: int, total: int, doi: str) -> str:
         message = r.json()["message"]
         # get the authors if message["author"] exists and has elements
         if "author" in message and message["author"]:
-            authors_list = [f"{a['given']} {a['family']}" for a in message["author"]]
+            authors_list = []
+            for a in message["author"]:
+                # Handle cases where 'given' or 'family' might be missing
+                given = a.get('given', '')
+                family = a.get('family', '')
+                
+                if given and family:
+                    full_name = f"{given} {family}"
+                elif family:
+                    full_name = family
+                elif given:
+                    full_name = given
+                else:
+                    full_name = "Unknown Author"
+                
+                authors_list.append(full_name)
+            
             authors = ", ".join(authors_list)
         else:
             authors = "Unknown"
@@ -57,7 +73,7 @@ def main():
     authors_list = []
 
     # read the DOIs from data/dois.txt
-    with open("data/dois.txt", "r") as f:
+    with open("data/dois.txt", "r", encoding="utf-8") as f:
         dois = [line.strip() for line in f if line.strip()]
 
     # get the publication date for each DOI
@@ -69,7 +85,7 @@ def main():
             authors_list.append("Unknown")  # Use "Unknown" for failed requests
 
     # write the authors into data/authors.txt
-    with open("data/authors.txt", "w") as f:
+    with open("data/authors.txt", "w", encoding="utf-8") as f:
         f.writelines("\n".join(authors_list))
 
     print(f"Saved {len(authors_list)} authors to data/authors.txt")
